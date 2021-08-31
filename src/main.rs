@@ -1,4 +1,6 @@
+use anyhow::Result;
 use clap::{AppSettings, Clap};
+use reqwest::Url;
 
 #[derive(Clap, Debug)]
 #[clap(setting = AppSettings::ColoredHelp)]
@@ -15,7 +17,13 @@ enum SubCommand {
 
 #[derive(Clap, Debug)]
 struct Get {
+    #[clap(parse(try_from_str=parse_url))]
     url: String,
+}
+
+fn parse_url(s: &str) -> Result<String> {
+    let _url: Url = s.parse()?;
+    Ok(s.into())
 }
 
 #[derive(Clap, Debug)]
