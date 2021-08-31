@@ -1,6 +1,7 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{AppSettings, Clap};
 use reqwest::Url;
+use std::str::FromStr;
 
 #[derive(Clap, Debug)]
 #[clap(setting = AppSettings::ColoredHelp)]
@@ -28,8 +29,36 @@ fn parse_url(s: &str) -> Result<String> {
 
 #[derive(Clap, Debug)]
 struct Post {
+    #[clap(parse(try_from_str=parse_url))]
     url: String,
-    body: Vec<String>,
+
+    #[clap(parse(try_from_str=parse_kv_pair))]
+    body: Vec<KvPair>,
+}
+
+#[derive(Debug)]
+struct KvPair {
+    key: String,
+    value: String,
+}
+
+impl FromStr for KvPair {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.split("=");
+
+        let err = || anyhow!(format!("Failed to parse {}", s));
+
+        Ok(Self {
+            key: (split.next().ok_or_else(err)?).to_string(),
+            value: (split.next().ok_or_else(err)?).to_string(),
+        })
+    }
+}
+
+fn parse_kv_pair(s: &str) -> Result<KvPair> {
+    Ok(s.parse()?)
 }
 
 fn main() {
