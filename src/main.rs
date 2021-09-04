@@ -1,6 +1,8 @@
 use anyhow::{anyhow, Result};
 use clap::{AppSettings, Clap};
-use reqwest::{Client, Url};
+use colored::*;
+use mime::Mime;
+use reqwest::{header, Client, Response, Url};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -75,7 +77,7 @@ async fn main() -> Result<()> {
 
 async fn get(client: Client, args: &Get) -> Result<()> {
     let response = client.get(&args.url).send().await?;
-    println!("{:?}", response.text().await?);
+    print_resp(response).await?;
     Ok(())
 }
 
@@ -88,4 +90,43 @@ async fn post(client: Client, args: &Post) -> Result<()> {
     let response = client.post(&args.url).json(&body).send().await?;
     println!("{:?}", response.text().await?);
     Ok(())
+}
+
+async fn print_resp(response: Response) -> Result<()> {
+    print_status(&response);
+    print_headers(&response);
+
+    let mime = get_content_type(&response);
+    let body = response.text().await?;
+    print_body(mime, body);
+    Ok(())
+}
+
+fn print_status(response: &Response) {
+    let status = format!("{:?} {}", response.version(), response.status()).blue();
+    println!("{}\n", status);
+}
+
+fn print_headers(response: &Response) {
+    for (name, value) in response.headers() {
+        println!("{} => {:?}", name.to_string().green(), value);
+    }
+
+    println!();
+}
+
+fn get_content_type(response: &Response) -> Option<Mime> {
+    response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .map(|v| v.to_str().unwrap().parse().unwrap())
+}
+
+fn print_body(mime: Option<Mime>, body: String) {
+    match mime {
+        Some(v) if v == mime::APPLICATION_JSON => {
+            println!("{}", jsonxf::pretty_print(&body).unwrap().cyan())
+        }
+        _ => println!("{}", body),
+    };
 }
