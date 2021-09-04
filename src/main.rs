@@ -88,7 +88,7 @@ async fn post(client: Client, args: &Post) -> Result<()> {
     }
 
     let response = client.post(&args.url).json(&body).send().await?;
-    println!("{:?}", response.text().await?);
+    print_resp(response).await?;
     Ok(())
 }
 
